@@ -1,25 +1,28 @@
 import type React from "react";
-import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { CartProvider } from "./context/cart-context";
+import "./globals.css";
+import Header from "@/components/layouts/header";
+import Footer from "@/components/layouts/footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ShopEasy | Phones, Books, Clothes",
-  description: "Shop the latest phones, books, and clothes at ShopEasy",
+  title: "E-Commerce Store",
+  description: "Your one-stop shop for phones, books, and clothes",
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <CartProvider>{children}</CartProvider>
+      <body className={`${inter.className} flex flex-col min-h-screen`}>
+        <Header />
+        <main className="flex-grow">{children}</main>
+        <Footer />
       </body>
     </html>
   );

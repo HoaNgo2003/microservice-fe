@@ -4,196 +4,115 @@ import type React from "react";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { loginUser } from "@/libs/api";
+import { notifyAuthStateChange } from "@/libs/auth";
 
 export default function LoginForm() {
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    rememberMe: false,
-  });
-  const [errors, setErrors] = useState({
-    email: "",
-    password: "",
-  });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-
-    // Clear error when user types
-    if (errors[name as keyof typeof errors]) {
-      setErrors({
-        ...errors,
-        [name]: "",
-      });
-    }
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const validateForm = () => {
-    let valid = true;
-    const newErrors = { ...errors };
-
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-      valid = false;
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
-      valid = false;
-    } else {
-      newErrors.email = "";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-      valid = false;
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-      valid = false;
-    } else {
-      newErrors.password = "";
-    }
-
-    setErrors(newErrors);
-    return valid;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
     setIsLoading(true);
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const username = formData.get("username") as string;
+    const password = formData.get("password") as string;
 
     try {
-      // This is where you would normally call your authentication API
-      // For demo purposes, we'll just simulate a login
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const response = await loginUser(username, password);
 
-      // Redirect to dashboard after successful login
-      router.push("/dashboard");
-    } catch (error) {
-      console.error("Login failed:", error);
+      if (response.success && response.data) {
+        // Save auth token to localStorage
+        if (response.data.access) {
+          localStorage.setItem("authToken", response.data.access);
+        }
+
+        // Save user data if needed
+        if (response.data.user) {
+          localStorage.setItem("userData", JSON.stringify(response.data.user));
+        }
+
+        // Notify components about auth state change
+        notifyAuthStateChange();
+
+        // Redirect to home page on successful login
+        router.push("/");
+      } else {
+        setError(
+          response.error || "Login failed. Please check your credentials."
+        );
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2 text-center">
-        <h2 className="text-2xl font-bold">Sign in to your account</h2>
-        <p className="text-sm text-muted-foreground">
-          Enter your email below to login to your account
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <div className="mb-4">
+        <h2 className="text-xl font-bold mb-1">Login</h2>
+        <p className="text-gray-600 text-sm">
+          Enter your username and password to access your account
         </p>
       </div>
+
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            placeholder="name@example.com"
-            value={formData.email}
-            onChange={handleChange}
-            disabled={isLoading}
-            aria-invalid={errors.email ? "true" : "false"}
-          />
-          {errors.email && (
-            <p className="text-sm text-red-500">{errors.email}</p>
-          )}
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label htmlFor="password">Password</label>
-            <Link
-              href="/forgot-password"
-              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-            >
-              Forgot password?
-            </Link>
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+            {error}
           </div>
-          <div className="relative">
-            <input
-              id="password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={handleChange}
-              disabled={isLoading}
-              aria-invalid={errors.password ? "true" : "false"}
-            />
-            <button
-              type="button"
-              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-              onClick={togglePasswordVisibility}
-              disabled={isLoading}
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <Eye className="h-4 w-4 text-muted-foreground" />
-              )}
-              <span className="sr-only">
-                {showPassword ? "Hide password" : "Show password"}
-              </span>
-            </button>
-          </div>
-          {errors.password && (
-            <p className="text-sm text-red-500">{errors.password}</p>
-          )}
-        </div>
-        <div className="flex items-center space-x-2">
-          <input
-            id="remember"
-            type="checkbox"
-            checked={formData.rememberMe}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setFormData({ ...formData, rememberMe: e.target.checked })
-            }
-            disabled={isLoading}
-          />
-          <label
-            htmlFor="remember"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Remember me
+        )}
+
+        <div>
+          <label htmlFor="username" className="block text-sm font-medium mb-1">
+            Username
           </label>
+          <input
+            id="username"
+            name="username"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter your username"
+            required
+          />
         </div>
-        <button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Signing in...
-            </>
-          ) : (
-            "Sign in"
-          )}
+
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium mb-1">
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter your password"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={isLoading}
+        >
+          {isLoading ? "Logging in..." : "Login"}
         </button>
       </form>
-      <div className="text-center text-sm">
-        Don&apos;t have an account?{" "}
-        <Link
-          href="/signup"
-          className="font-medium text-primary underline-offset-4 hover:underline"
-        >
-          Sign up
-        </Link>
+
+      <div className="mt-4 text-center">
+        <p className="text-gray-600">
+          Don&lsquo;t have an account?{" "}
+          <Link href="/register" className="text-blue-600 hover:underline">
+            Register
+          </Link>
+        </p>
       </div>
     </div>
   );
