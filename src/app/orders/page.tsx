@@ -75,7 +75,7 @@ const mockOrders = [
 ];
 
 export default function OrdersPage() {
-  const { user, loading } = useRequireAuth();
+  const { loading } = useRequireAuth();
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   if (loading) {

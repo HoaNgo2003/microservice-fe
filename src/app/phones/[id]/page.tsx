@@ -61,7 +61,7 @@ export default function PhoneDetailPage({
     //   os: phone.os,
     // };
 
-    addToCart(phone.id + "", quantity, "phones");
+    addToCart(phone.id, quantity, "phones");
 
     // Show a toast or notification
     alert(`${phone.name} added to cart!`);

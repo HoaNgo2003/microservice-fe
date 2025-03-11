@@ -9,7 +9,7 @@ import { addToCart } from "@/libs/cart-utils";
 export default function ClothesDetailPage({
   params,
 }: {
-  params: { id: string };
+  readonly params: { readonly id: string };
 }) {
   //   const router = useRouter();
   const [clothes, setClothes] = useState<Clothes | null>(null);
@@ -60,7 +60,7 @@ export default function ClothesDetailPage({
     if (!clothes) return;
 
     const product = {
-      id: clothes.id.toString(),
+      id: clothes.id,
       name: clothes.name,
       price: clothes.price,
       image: clothes.url || "/placeholder.svg?height=300&width=300",
@@ -71,7 +71,7 @@ export default function ClothesDetailPage({
       material: clothes.material,
     };
 
-    addToCart(product, quantity);
+    addToCart(product.id, quantity, "clothes");
 
     // Show a toast or notification
     alert(`${clothes.name} added to cart!`);

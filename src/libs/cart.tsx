@@ -17,10 +17,13 @@ export interface ExtendedProduct extends Product {
   brand?: string;
   model?: string;
   os?: string;
+  product_type?: string;
+  product_id: string;
 }
 
 export interface CartItem extends ExtendedProduct {
   quantity: number;
+  // items: [];
 }
 
 // Get cart from localStorage
@@ -36,6 +39,7 @@ export function getCart(): CartItem[] {
 
   try {
     return JSON.parse(cart);
+    console.log(cart);
   } catch (e) {
     console.error("Error parsing cart data:", e);
     return [];
@@ -43,7 +47,13 @@ export function getCart(): CartItem[] {
 }
 
 // Add item to cart
-export function addToCart(product: ExtendedProduct, quantity = 1): void {
+export function addToCart(
+  id: number,
+  p0: number,
+  p1: string,
+  product: ExtendedProduct,
+  quantity = 1
+): void {
   if (typeof window === "undefined") {
     return;
   }

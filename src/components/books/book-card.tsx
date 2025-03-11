@@ -1,6 +1,7 @@
 "use client";
 
 import { Book } from "@/libs/api";
+import { addToCart } from "@/libs/cart-utils";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -16,50 +17,8 @@ export default function BookCard({ book }: BookCardProps) {
     setIsAddingToCart(true);
 
     try {
-      // Get the current user ID from localStorage
-      const userData = localStorage.getItem("userData");
-      let customerId = 1; // Default to 1 if not logged in
-
-      if (userData) {
-        try {
-          const user = JSON.parse(userData);
-          if (user.id) {
-            customerId = Number.parseInt(user.id);
-          }
-        } catch (e) {
-          console.error("Error parsing user data:", e);
-        }
-      }
-
-      // Prepare the request data
-      const cartData = {
-        quantity: 1,
-        productId: book.id,
-        customerId: customerId,
-        category: "books",
-      };
-
-      // Call the API
-      const response = await fetch("/cart/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(cartData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Show success message
-        alert(`${book.name} added to cart!`);
-
-        // Trigger cart update event to refresh cart count in header
-        window.dispatchEvent(new CustomEvent("cart-updated"));
-      } else {
-        // Show error message
-        alert(`Failed to add to cart: ${data.message || "Unknown error"}`);
-      }
+      await addToCart(book.id, 1, "books");
+      alert(`${book.name} added to cart!`);
     } catch (error) {
       console.error("Failed to add to cart:", error);
       alert("Failed to add item to cart. Please try again.");

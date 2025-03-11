@@ -17,7 +17,7 @@ export default function ClothesCard({ clothes }: ClothesCardProps) {
     setIsAddingToCart(true);
 
     try {
-      addToCart(clothes.id + "", 1, "clothes");
+      await addToCart(clothes.id, 1, "clothes");
       alert(`${clothes.name} added to cart!`);
     } catch (error) {
       console.error("Failed to add to cart:", error);

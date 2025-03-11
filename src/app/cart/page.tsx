@@ -3,25 +3,49 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  CartItem,
   getCart,
-  getCartTotal,
-  removeFromCart,
+  removeCartItem,
   updateCartItemQuantity,
-} from "@/libs/cart";
+} from "@/libs/cart-utils";
+import { CartItem } from "@/libs/cart";
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
   useEffect(() => {
     // Load cart items
-    setCartItems(getCart());
-    setIsLoading(false);
+    async function loadCart() {
+      setIsLoading(true);
+      try {
+        // Import the getCart function
+        let cart = await fetch(`http://127.0.0.1:8001/cart/1/`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        cart = await cart.json();
+        // Debug log to see what's coming back from the API
+        console.log("Cart data from API:", cart);
+
+        // Convert API cart items to CartItem format
+
+        setCartItems(cart?.items);
+      } catch (error) {
+        console.error("Failed to load cart:", error);
+        setCartItems([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadCart();
 
     // Listen for cart updates
     const handleCartUpdate = () => {
-      setCartItems(getCart());
+      loadCart();
     };
 
     window.addEventListener("cart-updated", handleCartUpdate);
@@ -31,12 +55,83 @@ export default function CartPage() {
     };
   }, []);
 
-  const handleQuantityChange = (productId: string, newQuantity: number) => {
-    updateCartItemQuantity(productId, newQuantity);
+  const handleQuantityChange = async (
+    productId: string,
+    newQuantity: number,
+    category: string
+  ) => {
+    setIsUpdating(productId);
+    try {
+      // Import the updateCartItemQuantity function
+
+      // Get the current user ID from localStorage
+      const userData = localStorage.getItem("userData");
+      let customerId = 1; // Default to 1 if not logged in
+
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          if (user.id) {
+            customerId = Number.parseInt(user.id);
+          }
+        } catch (e) {
+          console.error("Error parsing user data:", e);
+        }
+      }
+
+      await updateCartItemQuantity(
+        customerId,
+        Number.parseInt(productId),
+        newQuantity,
+        category
+      );
+
+      // Trigger cart update event
+      window.dispatchEvent(new CustomEvent("cart-updated"));
+    } catch (error) {
+      console.error("Failed to update quantity:", error);
+    } finally {
+      setIsUpdating(null);
+    }
   };
 
-  const handleRemoveItem = (productId: string) => {
-    removeFromCart(productId);
+  const handleRemoveItem = async (productId: string, category: string) => {
+    setIsUpdating(productId);
+    try {
+      // Import the removeCartItem function
+
+      // Get the current user ID from localStorage
+      const userData = localStorage.getItem("userData");
+      let customerId = 1; // Default to 1 if not logged in
+
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          if (user.id) {
+            customerId = Number.parseInt(user.id);
+          }
+        } catch (e) {
+          console.error("Error parsing user data:", e);
+        }
+      }
+
+      await removeCartItem(customerId, Number.parseInt(productId), category);
+
+      // Trigger cart update event
+      window.dispatchEvent(new CustomEvent("cart-updated"));
+    } catch (error) {
+      console.error("Failed to remove item:", error);
+    } finally {
+      setIsUpdating(null);
+    }
+  };
+
+  // Function to calculate cart total
+  const calculateCartTotal = () => {
+    return cartItems.reduce(
+      (total, item) => total + item.price * item.quantity,
+      0
+    );
   };
 
   // Function to render product-specific details
@@ -65,7 +160,9 @@ export default function CartPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6">Your Cart</h1>
-        <p>Loading cart...</p>
+        <div className="flex justify-center items-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
       </div>
     );
   }
@@ -91,7 +188,7 @@ export default function CartPage() {
           </svg>
           <h2 className="text-xl font-semibold mb-2">Your cart is empty</h2>
           <p className="text-gray-600 mb-6">
-            Looks like you haven&apos;t added any products to your cart yet.
+            Looks like you haven&lsquo;t added any products to your cart yet.
           </p>
           <Link
             href="/"
@@ -103,6 +200,8 @@ export default function CartPage() {
       </div>
     );
   }
+
+  const cartTotal = calculateCartTotal();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -145,10 +244,17 @@ export default function CartPage() {
                         <div className="flex items-center justify-center">
                           <button
                             onClick={() =>
-                              handleQuantityChange(item.id, item.quantity - 1)
+                              handleQuantityChange(
+                                item.product_id ?? "1",
+                                item.quantity - 1,
+                                item.product_type || ""
+                              )
                             }
                             className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-l-md"
-                            disabled={item.quantity <= 1}
+                            disabled={
+                              item.quantity <= 1 ||
+                              isUpdating === item.product_id
+                            }
                           >
                             -
                           </button>
@@ -158,17 +264,24 @@ export default function CartPage() {
                             value={item.quantity}
                             onChange={(e) =>
                               handleQuantityChange(
-                                item.id,
-                                Number.parseInt(e.target.value) || 1
+                                item.product_id ?? "1",
+                                Number.parseInt(e.target.value) || 1,
+                                item.product_type || ""
                               )
                             }
                             className="w-12 h-8 border-t border-b border-gray-300 text-center"
+                            disabled={isUpdating === item.product_id}
                           />
                           <button
                             onClick={() =>
-                              handleQuantityChange(item.id, item.quantity + 1)
+                              handleQuantityChange(
+                                item.product_id ?? "1",
+                                item.quantity + 1,
+                                item.product_type || ""
+                              )
                             }
                             className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-r-md"
+                            disabled={isUpdating === item.product_id}
                           >
                             +
                           </button>
@@ -181,25 +294,35 @@ export default function CartPage() {
                         ${(item.price * item.quantity).toFixed(2)}
                       </td>
                       <td className="py-4 text-right">
-                        <button
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
+                        {isUpdating === item.id ? (
+                          <div className="inline-block h-5 w-5 border-t-2 border-b-2 border-blue-600 rounded-full animate-spin"></div>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              handleRemoveItem(
+                                item.product_id ?? "1",
+                                item.product_type ?? ""
+                              )
+                            }
+                            className="text-red-500 hover:text-red-700"
+                            disabled={isUpdating === item.product_id}
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        </button>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -216,7 +339,7 @@ export default function CartPage() {
             <div className="space-y-3 mb-6">
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal</span>
-                <span>${getCartTotal().toFixed(2)}</span>
+                <span>${cartTotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Shipping</span>
@@ -224,12 +347,12 @@ export default function CartPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Tax</span>
-                <span>${(getCartTotal() * 0.1).toFixed(2)}</span>
+                <span>${(cartTotal * 0.1).toFixed(2)}</span>
               </div>
               <div className="border-t pt-3 mt-3">
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
-                  <span>${(getCartTotal() * 1.1).toFixed(2)}</span>
+                  <span>${(cartTotal * 1.1).toFixed(2)}</span>
                 </div>
               </div>
             </div>

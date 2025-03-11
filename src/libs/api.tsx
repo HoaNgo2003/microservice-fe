@@ -38,7 +38,7 @@ export interface LoginResponse {
 export async function apiRequest<T>(
   endpoint: string,
   method = "GET",
-  data?: any,
+  data?: unknown,
   headers: HeadersInit = {}
 ): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}${endpoint}`;

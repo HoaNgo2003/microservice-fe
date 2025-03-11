@@ -17,7 +17,7 @@ export default function PhoneCard({ phone }: PhoneCardProps) {
     setIsAddingToCart(true);
 
     try {
-      await addToCart(phone.id + "", 1, "phones");
+      await addToCart(phone.id, 1, "phones");
       alert(`${phone.name} added to cart!`);
     } catch (error) {
       console.error("Failed to add to cart:", error);
