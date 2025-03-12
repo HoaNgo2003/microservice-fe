@@ -9,19 +9,19 @@ const categories = [
   {
     id: "phones",
     name: "Phones",
-    image: "/placeholder.svg?height=300&width=500",
+    image: "https://cdn.viettelstore.vn/Images/Product/ProductImage/400291111.jpeg",
     productCount: 24,
   },
   {
     id: "books",
     name: "Books",
-    image: "/placeholder.svg?height=300&width=500",
+    image: "https://upload.wikimedia.org/wikipedia/vi/4/4f/Dragon_Ball_Super_artwork.jpg",
     productCount: 36,
   },
   {
     id: "clothes",
     name: "Clothes",
-    image: "/placeholder.svg?height=300&width=500",
+    image: "https://ruza.vn/wp-content/uploads/2022/10/quan-tay-ong-suong-qts-22-14.jpg",
     productCount: 42,
   },
 ];

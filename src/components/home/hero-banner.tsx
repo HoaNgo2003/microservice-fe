@@ -30,7 +30,7 @@ export default function HeroBanner() {
           </div>
           <div className="hidden md:block">
             <img
-              src="/placeholder.svg?height=400&width=600"
+              src="https://i.pinimg.com/736x/82/d1/a7/82d1a7de8b4ace8d0fb3309117cec204.jpg"
               alt="Shopping Banner"
               className="rounded-lg shadow-lg"
             />

@@ -58,9 +58,10 @@ export default function CartPage() {
   const handleQuantityChange = async (
     productId: string,
     newQuantity: number,
-    category: string
+    category: string,
+    cartId: string
   ) => {
-    setIsUpdating(productId);
+    setIsUpdating(cartId);
     try {
       // Import the updateCartItemQuantity function
 
@@ -95,8 +96,8 @@ export default function CartPage() {
     }
   };
 
-  const handleRemoveItem = async (productId: string, category: string) => {
-    setIsUpdating(productId);
+  const handleRemoveItem = async (productId: string, category: string, cartId: string) => {
+    setIsUpdating(cartId);
     try {
       // Import the removeCartItem function
 
@@ -228,7 +229,7 @@ export default function CartPage() {
                         <div className="flex items-center">
                           <img
                             src={
-                              item.image ||
+                              item.image_urls ||
                               "/placeholder.svg?height=80&width=80"
                             }
                             alt={item.name}
@@ -247,13 +248,14 @@ export default function CartPage() {
                               handleQuantityChange(
                                 item.product_id ?? "1",
                                 item.quantity - 1,
-                                item.product_type || ""
+                                item.product_type || "",
+                                item.id
                               )
                             }
                             className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-l-md"
                             disabled={
                               item.quantity <= 1 ||
-                              isUpdating === item.product_id
+                              isUpdating === item.id
                             }
                           >
                             -
@@ -266,22 +268,24 @@ export default function CartPage() {
                               handleQuantityChange(
                                 item.product_id ?? "1",
                                 Number.parseInt(e.target.value) || 1,
-                                item.product_type || ""
+                                item.product_type || "",
+                                item.id
                               )
                             }
                             className="w-12 h-8 border-t border-b border-gray-300 text-center"
-                            disabled={isUpdating === item.product_id}
+                            disabled={isUpdating === item.id}
                           />
                           <button
                             onClick={() =>
                               handleQuantityChange(
                                 item.product_id ?? "1",
                                 item.quantity + 1,
-                                item.product_type || ""
+                                item.product_type || "",
+                                item.id
                               )
                             }
                             className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-r-md"
-                            disabled={isUpdating === item.product_id}
+                            disabled={isUpdating === item.id}
                           >
                             +
                           </button>
@@ -301,11 +305,12 @@ export default function CartPage() {
                             onClick={() =>
                               handleRemoveItem(
                                 item.product_id ?? "1",
-                                item.product_type ?? ""
+                                item.product_type ?? "",
+                                item.id
                               )
                             }
                             className="text-red-500 hover:text-red-700"
-                            disabled={isUpdating === item.product_id}
+                            disabled={isUpdating === item.id}
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"

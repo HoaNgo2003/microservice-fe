@@ -146,29 +146,29 @@ export interface Phone {
 }
 
 export async function getBooks(): Promise<ApiResponse<Book[]>> {
-  return apiRequest<Book[]>("/product/api/books/", "GET");
+  return apiRequest<Book[]>("/book/api/books/", "GET");
 }
 
 export async function getBookById(id: number): Promise<ApiResponse<Book>> {
-  return apiRequest<Book>(`/product/api/books/${id}/`, "GET");
+  return apiRequest<Book>(`/book/api/books/${id}/`, "GET");
 }
 
 export async function getClothes(): Promise<ApiResponse<Clothes[]>> {
-  return apiRequest<Clothes[]>("/product/api/clothes/", "GET");
+  return apiRequest<Clothes[]>("/clothes/api/clothes/", "GET");
 }
 
 export async function getClothesById(
   id: number
 ): Promise<ApiResponse<Clothes>> {
-  return apiRequest<Clothes>(`/product/api/clothes/${id}/`, "GET");
+  return apiRequest<Clothes>(`/clothes/api/clothes/${id}/`, "GET");
 }
 
 export async function getPhones(): Promise<ApiResponse<Phone[]>> {
-  return apiRequest<Phone[]>("/product/api/phones/", "GET");
+  return apiRequest<Phone[]>("/phone/api/phones/", "GET");
 }
 
 export async function getPhoneById(id: number): Promise<ApiResponse<Phone>> {
-  return apiRequest<Phone>(`/product/api/phones/${id}/`, "GET");
+  return apiRequest<Phone>(`/phone/api/phones/${id}/`, "GET");
 }
 /**
  * Example of how to add other API functions
