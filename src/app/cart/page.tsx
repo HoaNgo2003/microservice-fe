@@ -8,12 +8,13 @@ import {
   updateCartItemQuantity,
 } from "@/libs/cart-utils";
 import { CartItem } from "@/libs/cart";
+import { useRouter } from "next/navigation";
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
-
+  const router = useRouter();
   useEffect(() => {
     // Load cart items
     async function loadCart() {
@@ -96,7 +97,11 @@ export default function CartPage() {
     }
   };
 
-  const handleRemoveItem = async (productId: string, category: string, cartId: string) => {
+  const handleRemoveItem = async (
+    productId: string,
+    category: string,
+    cartId: string
+  ) => {
     setIsUpdating(cartId);
     try {
       // Import the removeCartItem function
@@ -254,8 +259,7 @@ export default function CartPage() {
                             }
                             className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-l-md"
                             disabled={
-                              item.quantity <= 1 ||
-                              isUpdating === item.id
+                              item.quantity <= 1 || isUpdating === item.id
                             }
                           >
                             -
@@ -362,7 +366,10 @@ export default function CartPage() {
               </div>
             </div>
 
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+            <button
+              onClick={() => router.push("/checkout")}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+            >
               Proceed to Checkout
             </button>
 
@@ -389,8 +396,8 @@ export default function CartPage() {
               </Link>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </div >
+      </div >
+    </div >
   );
 }

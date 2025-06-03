@@ -4,7 +4,6 @@ import type React from "react";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { loginUser } from "@/libs/api";
 import { notifyAuthStateChange } from "@/libs/auth";
 
@@ -106,14 +105,14 @@ export default function LoginForm() {
         </button>
       </form>
 
-      <div className="mt-4 text-center">
+      {/* <div className="mt-4 text-center">
         <p className="text-gray-600">
           Don&lsquo;t have an account?{" "}
           <Link href="/register" className="text-blue-600 hover:underline">
             Register
           </Link>
         </p>
-      </div>
+      </div> */}
     </div>
   );
 }

@@ -120,7 +120,7 @@ export async function getCart() {
       if (contentType && contentType.includes("application/json")) {
         const data = await response.json();
         console.log("Get cart API response data:", data);
-        return data.cart || { items: [] };
+        return data.items || { items: [] };
       } else {
         // Not JSON, log the actual response for debugging
         const text = await response.text();
