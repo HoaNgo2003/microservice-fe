@@ -13,8 +13,9 @@ export interface CartItem {
   id: number;
   name: string;
   price: number;
-  image: string;
-  category: string;
+  image_urls: string;
+  product_type: string;
+  product_id: number;
   quantity: number;
   color?: string;
   size?: string;
@@ -40,7 +41,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const savedCart = await getCart();
       if (savedCart) {
         try {
-          setCart(JSON.parse(savedCart));
+          setCart(savedCart);
         } catch (error) {
           console.error("Failed to parse cart from localStorage:", error);
           setCart([]);
@@ -51,6 +52,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Save cart to localStorage whenever it changes
+
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
@@ -60,7 +62,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Check if item already exists in cart
       const existingItemIndex = prevCart.findIndex(
         (cartItem) =>
-          cartItem.id === item.id && cartItem.category === item.category
+          cartItem.id === item.id && cartItem.product_type === item.product_type
       );
 
       if (existingItemIndex >= 0) {
@@ -78,7 +80,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const updateQuantity = (id: number, category: string, quantity: number) => {
     setCart((prevCart) =>
       prevCart.map((item) =>
-        item.id === id && item.category === category
+        item.id === id && item.product_type === category
           ? { ...item, quantity: Math.max(1, quantity) }
           : item
       )
@@ -87,7 +89,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const removeFromCart = (id: number, category: string) => {
     setCart((prevCart) =>
-      prevCart.filter((item) => !(item.id === id && item.category === category))
+      prevCart.filter((item) => !(item.id === id && item.product_type === category))
     );
   };
 

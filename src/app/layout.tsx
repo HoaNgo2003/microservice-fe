@@ -26,7 +26,7 @@ export default function RootLayout({
           <main className="flex-grow">{children}</main>
         </CartProvider>
         <Footer />
-      </body>
-    </html>
+      </body >
+    </html >
   );
 }

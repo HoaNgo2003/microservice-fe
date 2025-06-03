@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
 import { CheckCircle, Package, Truck, Home } from "lucide-react";
-import { useCart } from "@/app/context/cart-context";
+import { useCart } from "@/components/context/cart-context";
 
 export default function ConfirmationPage() {
   const router = useRouter();
@@ -25,9 +23,9 @@ export default function ConfirmationPage() {
 
     // If someone tries to access this page directly and they have items in their cart,
     // they probably didn't complete checkout, so redirect them
-    if (getCartCount() > 0) {
-      router.push("/cart");
-    }
+    // if (getCartCount() > 0) {
+    //   router.push("/cart");
+    // }
   }, [getCartCount, router]);
 
   if (!isClient) {

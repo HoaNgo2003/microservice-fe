@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { AUTH_STATE_CHANGE_EVENT, isAuthenticated, logout } from "@/libs/auth";
 import { getCartItemCount } from "@/libs/cart";
-import { getCart, getCartCount } from "@/libs/cart-utils";
 
 export default function Header() {
   const router = useRouter();
@@ -270,6 +269,29 @@ export default function Header() {
                             />
                           </svg>
                           My Orders
+                        </Link>
+                        <Link
+                          href="/payments"
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => {
+                            setDropdownOpen(false);
+                            setIsOpen(false);
+                          }}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4 mr-2 lucide lucide-credit-card-icon lucide-credit-card"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <rect width="20" height="14" x="2" y="5" rx="2" />
+                            <line x1="2" x2="22" y1="10" y2="10" />
+                          </svg>
+                          My Payments
                         </Link>
                         <Link
                           href="/wishlist"

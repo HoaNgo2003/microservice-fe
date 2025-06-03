@@ -396,8 +396,8 @@ export default function CartPage() {
               </Link>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </div >
+      </div >
+    </div >
   );
 }

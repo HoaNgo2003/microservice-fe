@@ -1,13 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import type React from "react";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { CheckCircle } from "lucide-react";
 import { useCart } from "@/components/context/cart-context";
+import { isAuthenticated } from "@/libs/auth";
+import { useRouter } from "next/navigation";
 // import { formatPrice } from "@/libs/util" // Removed as it's being defined locally
 
 interface ShippingInfo {
@@ -35,7 +36,6 @@ const formatPrice = (price: number): string => {
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, getCartCount } = useCart();
-  const [cartData, setCartData] = useState([]);
   const [isClient, setIsClient] = useState(false);
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     firstName: "",
@@ -63,6 +63,8 @@ export default function CheckoutPage() {
     country: "",
     saveInfo: "",
   });
+  const [user, setUser] = useState<any>(null);
+  const [loadingSubmit, setLoadingSubmit] = useState(false)
 
   // Calculate totals
   const subtotal = cart.reduce(
@@ -75,14 +77,30 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     setIsClient(true);
-    const fetchCartData = async () => {
-      const cart = await fetch('')
-    }
     // Redirect to cart if cart is empty
     // if (getCartCount() === 0) {
     //   router.push("/cart");
     // }
   }, [getCartCount, router]);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (isAuthenticated()) {
+        const userData = localStorage.getItem("userData");
+        if (userData) {
+          try {
+            setUser(JSON.parse(userData));
+          } catch (e) {
+            console.error("Error parsing user data:", e);
+          }
+        }
+      } else {
+        setUser(null);
+      }
+    };
+
+    checkAuth();
+  }, [])
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -137,10 +155,9 @@ export default function CheckoutPage() {
 
     requiredFields.forEach((field) => {
       if (!shippingInfo[field]) {
-        newErrors[field] = `${
-          field.charAt(0).toUpperCase() +
+        newErrors[field] = `${field.charAt(0).toUpperCase() +
           field.slice(1).replace(/([A-Z])/g, " $1")
-        } is required`;
+          } is required`;
       }
     });
 
@@ -166,7 +183,18 @@ export default function CheckoutPage() {
     // }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      address,
+      city,
+      state,
+      zipCode,
+      country,
+    } = newErrors
+    return !firstName || !lastName || !email || !phone || !address || !city || !state || !zipCode || !country;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -178,10 +206,11 @@ export default function CheckoutPage() {
         localStorage.setItem("shippingInfo", JSON.stringify(shippingInfo));
       }
 
+      setLoadingSubmit(true)
       try {
         // First create the address
         const addressResponse = await fetch(
-          "http://127.0.0.1:8005/api/addresses/",
+          "http://127.0.0.1:8001/customer/api/addresses/",
           {
             method: "POST",
             headers: {
@@ -193,7 +222,7 @@ export default function CheckoutPage() {
               state: shippingInfo.state,
               country: shippingInfo.country,
               postal_code: shippingInfo.zipCode,
-              customer: 3, // Using the customer ID from the example
+              customer: user?.id, // Using the customer ID from the example
             }),
           }
         );
@@ -207,21 +236,23 @@ export default function CheckoutPage() {
 
         // Then create the order
         const orderItems = cart.map((item) => ({
-          category: item.category || "books", // Default to books if category is missing
-          product_id: item.id,
+          category: item.product_type
+            || "books", // Default to books if category is missing
+          product_id: item.product_id
+          ,
           product_name: item.name,
           quantity: item.quantity,
         }));
 
         const orderResponse = await fetch(
-          "http://127.0.0.1:8006/order/orders/",
+          "http://127.0.0.1:8001/order/order/orders/",
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              customer_id: 3, // Using the customer ID from the example
+              customer_id: user?.id, // Using the customer ID from the example
               items: orderItems,
             }),
           }
@@ -234,9 +265,11 @@ export default function CheckoutPage() {
         const orderData = await orderResponse.json();
         console.log("Order created:", orderData);
 
+        setLoadingSubmit(false)
         // Proceed to payment
-        router.push("/checkout/payment");
+        router.push(`/checkout/payment?orderId=${orderData.id}`);
       } catch (error) {
+        setLoadingSubmit(false)
         console.error("Error during checkout:", error);
         alert("There was an error processing your order. Please try again.");
       }
@@ -312,11 +345,10 @@ export default function CheckoutPage() {
                         name="firstName"
                         value={shippingInfo.firstName}
                         onChange={handleChange}
-                        className={`mt-1 block w-full rounded-md border ${
-                          errors.firstName
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
+                        className={`mt-1 block w-full rounded-md border ${errors.firstName
+                          ? "border-red-500"
+                          : "border-gray-300"
+                          } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
                       />
                       {errors.firstName && (
                         <p className="mt-1 text-sm text-red-600">
@@ -338,9 +370,8 @@ export default function CheckoutPage() {
                         name="lastName"
                         value={shippingInfo.lastName}
                         onChange={handleChange}
-                        className={`mt-1 block w-full rounded-md border ${
-                          errors.lastName ? "border-red-500" : "border-gray-300"
-                        } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
+                        className={`mt-1 block w-full rounded-md border ${errors.lastName ? "border-red-500" : "border-gray-300"
+                          } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
                       />
                       {errors.lastName && (
                         <p className="mt-1 text-sm text-red-600">
@@ -362,9 +393,8 @@ export default function CheckoutPage() {
                         name="email"
                         value={shippingInfo.email}
                         onChange={handleChange}
-                        className={`mt-1 block w-full rounded-md border ${
-                          errors.email ? "border-red-500" : "border-gray-300"
-                        } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
+                        className={`mt-1 block w-full rounded-md border ${errors.email ? "border-red-500" : "border-gray-300"
+                          } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
                       />
                       {errors.email && (
                         <p className="mt-1 text-sm text-red-600">
@@ -386,9 +416,8 @@ export default function CheckoutPage() {
                         name="phone"
                         value={shippingInfo.phone}
                         onChange={handleChange}
-                        className={`mt-1 block w-full rounded-md border ${
-                          errors.phone ? "border-red-500" : "border-gray-300"
-                        } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
+                        className={`mt-1 block w-full rounded-md border ${errors.phone ? "border-red-500" : "border-gray-300"
+                          } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
                       />
                       {errors.phone && (
                         <p className="mt-1 text-sm text-red-600">
@@ -410,9 +439,8 @@ export default function CheckoutPage() {
                         name="address"
                         value={shippingInfo.address}
                         onChange={handleChange}
-                        className={`mt-1 block w-full rounded-md border ${
-                          errors.address ? "border-red-500" : "border-gray-300"
-                        } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
+                        className={`mt-1 block w-full rounded-md border ${errors.address ? "border-red-500" : "border-gray-300"
+                          } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
                       />
                       {errors.address && (
                         <p className="mt-1 text-sm text-red-600">
@@ -451,9 +479,8 @@ export default function CheckoutPage() {
                         name="city"
                         value={shippingInfo.city}
                         onChange={handleChange}
-                        className={`mt-1 block w-full rounded-md border ${
-                          errors.city ? "border-red-500" : "border-gray-300"
-                        } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
+                        className={`mt-1 block w-full rounded-md border ${errors.city ? "border-red-500" : "border-gray-300"
+                          } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
                       />
                       {errors.city && (
                         <p className="mt-1 text-sm text-red-600">
@@ -475,9 +502,8 @@ export default function CheckoutPage() {
                         name="state"
                         value={shippingInfo.state}
                         onChange={handleChange}
-                        className={`mt-1 block w-full rounded-md border ${
-                          errors.state ? "border-red-500" : "border-gray-300"
-                        } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
+                        className={`mt-1 block w-full rounded-md border ${errors.state ? "border-red-500" : "border-gray-300"
+                          } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
                       />
                       {errors.state && (
                         <p className="mt-1 text-sm text-red-600">
@@ -499,9 +525,8 @@ export default function CheckoutPage() {
                         name="zipCode"
                         value={shippingInfo.zipCode}
                         onChange={handleChange}
-                        className={`mt-1 block w-full rounded-md border ${
-                          errors.zipCode ? "border-red-500" : "border-gray-300"
-                        } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
+                        className={`mt-1 block w-full rounded-md border ${errors.zipCode ? "border-red-500" : "border-gray-300"
+                          } px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500`}
                       />
                       {errors.zipCode && (
                         <p className="mt-1 text-sm text-red-600">
@@ -560,9 +585,11 @@ export default function CheckoutPage() {
                     </Link>
                     <button
                       type="submit"
-                      className="rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      className="rounded-md bg-blue-600 px-6 py-3 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                      disabled={loadingSubmit}
                     >
-                      Continue to Payment
+                      {loadingSubmit ? "Continue to Payment..." : "Continue to Payment"}
+
                     </button>
                   </div>
                 </form>
@@ -577,16 +604,13 @@ export default function CheckoutPage() {
                 <div className="max-h-80 overflow-y-auto">
                   {cart.map((item) => (
                     <div
-                      key={`${item.id}-${item.category}`}
+                      key={`${item.id}-${item.product_type}`}
                       className="mb-4 flex items-center"
                     >
                       <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                        <Image
-                          src={item.image || "/placeholder.svg"}
+                        <img src={item.image_urls || "/placeholder.svg"}
                           alt={item.name}
-                          fill
-                          className="object-contain p-1"
-                        />
+                          className="object-contain p-1" />
                         <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
                           {item.quantity}
                         </div>

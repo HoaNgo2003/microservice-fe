@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
 // import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Book, getBookById } from "@/libs/api";
+import { Book, fetchComments, getBookById, postComment } from "@/libs/api";
 import { addToCart } from "@/libs/cart-utils";
+import { isAuthenticated } from "@/libs/auth";
 
 export default function BookDetailPage({ params }: { params: { id: string } }) {
   //   const router = useRouter();
@@ -13,6 +15,34 @@ export default function BookDetailPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+
+
+  const [user, setUser] = useState<any>(null);
+
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [loadingComment, setLoadingComment] = useState(false);
+
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (isAuthenticated()) {
+        const userData = localStorage.getItem("userData");
+        if (userData) {
+          try {
+            setUser(JSON.parse(userData));
+          } catch (e) {
+            console.error("Error parsing user data:", e);
+          }
+        }
+      } else {
+        setUser(null);
+      }
+    };
+
+    checkAuth();
+  }, [])
 
   useEffect(() => {
     async function fetchBook() {
@@ -43,6 +73,19 @@ export default function BookDetailPage({ params }: { params: { id: string } }) {
     fetchBook();
   }, [params.id]);
 
+  useEffect(() => {
+    if (book) {
+      const fetchCommentsData = async () => {
+        setLoadingComments(true); // bắt đầu loading
+        const data = await fetchComments(book.id, "books");
+        setComments(data);
+        setLoadingComments(false); // kết thúc loading
+      };
+
+      fetchCommentsData();
+    }
+  }, [book])
+
   const handleAddToCart = async () => {
     if (!book) return;
 
@@ -58,6 +101,27 @@ export default function BookDetailPage({ params }: { params: { id: string } }) {
       setIsAddingToCart(false);
     }
   };
+
+
+  const handleComment = async () => {
+
+    if (!newComment.trim() || !book) return;
+    setLoadingComment(true); // bật loading
+    await postComment({
+      user_id: user?.id, // có thể lấy từ localStorage nếu có auth
+      username: user?.username,
+      product_id: book.id,
+      category: "books",
+      content: newComment,
+    });
+
+    // reload lại comment
+    const updated = await fetchComments(book.id, "books");
+    setComments(updated);
+    setNewComment("");
+
+    setLoadingComment(false); // tắt loading
+  }
 
   if (isLoading) {
     return (
@@ -193,6 +257,43 @@ export default function BookDetailPage({ params }: { params: { id: string } }) {
               </button>
             </div>
           </div>
+        </div>
+        <div className="mt-8 mx-[20px]">
+          <h2 className="text-xl font-semibold mb-4">Customer Comments</h2>
+
+          {loadingComments ? (
+            <div className="text-gray-500 italic">Loading comments...</div>
+          ) : comments.length === 0 ? (
+            <p className="text-gray-500">No comments yet.</p>
+          ) : (
+            <ul className="space-y-4">
+              {comments?.map((c: any) => (
+                <li key={c.id} className="bg-gray-100 p-4 rounded-md shadow-sm">
+                  <p className="text-gray-800">{c.username}: {c.content}</p>
+                  <p className={`text-sm ${c.sentiment === 'Tích cực' ? 'text-green-500' : (c.sentiment === 'Tiêu cực' ? 'text-red-500' : 'text-gray-500')} mt-1`}>Sentiment: {c.sentiment}</p>
+                  <p className="text-sm text-gray-500 mt-1">Confidence: {c.confidence}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="mt-6 mx-[20px] mb-[20px]">
+          <h3 className="text-lg font-medium mb-2">Leave a Comment</h3>
+          <textarea
+            className="w-full border border-gray-300 rounded-md p-2"
+            rows={3}
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Write your comment here..."
+          ></textarea>
+
+          <button
+            onClick={handleComment}
+            className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            disabled={loadingComment}
+          >
+            {loadingComment ? "Submitting..." : "Submit"}
+          </button>
         </div>
       </div>
     </div>

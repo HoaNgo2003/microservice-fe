@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * API utility functions for making requests to the backend
  */
@@ -169,6 +170,35 @@ export async function getPhones(): Promise<ApiResponse<Phone[]>> {
 
 export async function getPhoneById(id: number): Promise<ApiResponse<Phone>> {
   return apiRequest<Phone>(`/phone/api/phones/${id}/`, "GET");
+}
+
+export async function getOrdersByCustomerId(customerId: number): Promise<ApiResponse<any>> {
+  return apiRequest<any>(`/order/order/orders/by-customer/${customerId}/`, "GET");
+}
+
+export async function getPaymentsByCustomerId(customerId: number): Promise<ApiResponse<any>> {
+  return apiRequest<any>(`/payment/payment/payments/by-customer/${customerId}/`, "GET");
+}
+
+export async function fetchComments(productId: number, category: string) {
+  const res = await fetch(`http://localhost:8001/comment/comments/by-product/${category}/${productId}/`);
+  return res.json();
+}
+
+export async function postComment(data: {
+  user_id: number;
+  username: string;
+  product_id: number;
+  category: string;
+  content: string;
+}) {
+  const res = await fetch("http://localhost:8001/comment/comments/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  return res.json();
 }
 /**
  * Example of how to add other API functions
