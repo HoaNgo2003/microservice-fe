@@ -1,45 +1,70 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  getCart,
   removeCartItem,
   updateCartItemQuantity,
 } from "@/libs/cart-utils";
 import { CartItem } from "@/libs/cart";
 import { useRouter } from "next/navigation";
+import { isAuthenticated } from "@/libs/auth";
 
 export default function CartPage() {
+  const [user, setUser] = useState<any>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (isAuthenticated()) {
+        const userData = localStorage.getItem("userData");
+        if (userData) {
+          try {
+            setUser(JSON.parse(userData));
+          } catch (e) {
+            console.error("Error parsing user data:", e);
+          }
+        }
+      } else {
+        setUser(null);
+      }
+    };
+
+    checkAuth();
+  }, [])
+
   useEffect(() => {
     // Load cart items
     async function loadCart() {
-      setIsLoading(true);
-      try {
-        // Import the getCart function
-        let cart = await fetch(`http://127.0.0.1:8001/cart/1/`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        cart = await cart.json();
-        // Debug log to see what's coming back from the API
-        console.log("Cart data from API:", cart);
+      if (user?.id) {
+        setIsLoading(true);
+        try {
+          // Import the getCart function
+          let cart: any = await fetch(`http://127.0.0.1:8001/cart/${user.id}/`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+          cart = await cart.json();
+          // Debug log to see what's coming back from the API
+          console.log("Cart data from API:", cart);
 
-        // Convert API cart items to CartItem format
+          // Convert API cart items to CartItem format
 
-        setCartItems(cart?.items);
-      } catch (error) {
-        console.error("Failed to load cart:", error);
-        setCartItems([]);
-      } finally {
-        setIsLoading(false);
+          setCartItems(cart?.items);
+        } catch (error) {
+          console.error("Failed to load cart:", error);
+          setCartItems([]);
+        } finally {
+          setIsLoading(false);
+        }
       }
+
     }
 
     loadCart();
@@ -54,7 +79,7 @@ export default function CartPage() {
     return () => {
       window.removeEventListener("cart-updated", handleCartUpdate);
     };
-  }, []);
+  }, [user]);
 
   const handleQuantityChange = async (
     productId: string,
